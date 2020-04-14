@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/STM32Toolchain/pojects/WS2812B_DMA/Inc
+HeaderPath=D:/WS2812B_STM32_DMA/Inc
 HeaderFiles=gpio.h;adc.h;dma.h;FreeRTOSConfig.h;i2c.h;spi.h;tim.h;usart.h;usb.h;stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;
-SourcePath=C:/STM32Toolchain/pojects/WS2812B_DMA/Src
+SourcePath=D:/WS2812B_STM32_DMA/Src
 SourceFiles=gpio.c;adc.c;dma.c;freertos.c;i2c.c;spi.c;tim.c;usart.c;usb.c;stm32f1xx_it.c;stm32f1xx_hal_msp.c;stm32f1xx_hal_timebase_tim.c;main.c;
 
 [PreviousLibFiles]

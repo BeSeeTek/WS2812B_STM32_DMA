@@ -23,6 +23,8 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
+#include "spi.h"
+#include "SEGGER_SYSVIEW.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
@@ -65,6 +67,8 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   * @retval None
   */
 void MX_FREERTOS_Init(void) {
+	  SEGGER_SYSVIEW_Conf();
+
   /* USER CODE BEGIN Init */
        
   /* USER CODE END Init */
@@ -87,9 +91,9 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
-
+  //SEGGER_SYSVIEW_Start();
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -105,12 +109,38 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
-
+static uint8_t RGB_SPI_LUT[256][3]={0};
+const uint32_t mask=0b000000000100100100100100100100100; //Mask for low and high mask is ID7O ID6O ID5O ID4O ID3O ID2O ID1O ID0O
+for(uint32_t i=0;i<256;i++)
+{
+	uint32_t tmp=mask;
+	uint32_t DataPos3=0;
+	//loop over evry bit in the data byte
+	for(uint8_t j=0;j<8;j++){
+		uint32_t DataBit=i&(1<<j);
+		if(DataBit>0){
+			DataPos3=1<<(3*j+1);// set bit at pos 3j+1 to 1 this is the pos Dj in  ID7O ID6O ID5O ID4O ID3O ID2O ID1O ID0O
+		}
+		else
+		{
+			DataPos3=0;
+		}
+		tmp=tmp|DataPos3;
+	}
+	RGB_SPI_LUT[i][2]=tmp; //LSB here send last
+	RGB_SPI_LUT[i][1]=tmp>>8;
+	RGB_SPI_LUT[i][0]=tmp>>16; //MSB here send first
+}
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
+	uint8_t IDX=0;
   for(;;)
   {
-    osDelay(1);
+		osDelay(150);
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		//HAL_StatusTypeDef HAL_SPI_Transmit_DMA(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size)
+		HAL_SPI_Transmit_DMA(&hspi1,&RGB_SPI_LUT[IDX],3);
+		IDX++;
   }
   /* USER CODE END StartDefaultTask */
 }
