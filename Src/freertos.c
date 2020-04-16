@@ -91,7 +91,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 256);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
   //SEGGER_SYSVIEW_Start();
   /* USER CODE BEGIN RTOS_THREADS */
@@ -109,7 +109,8 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
-static uint8_t RGB_SPI_LUT[256][3]={0};
+//GENERATE LUT
+static uint8_t RGB_SPI_LUT[256*3]={0};
 const uint32_t mask=0b000000000100100100100100100100100; //Mask for low and high mask is ID7O ID6O ID5O ID4O ID3O ID2O ID1O ID0O
 for(uint32_t i=0;i<256;i++)
 {
@@ -127,20 +128,47 @@ for(uint32_t i=0;i<256;i++)
 		}
 		tmp=tmp|DataPos3;
 	}
-	RGB_SPI_LUT[i][2]=tmp; //LSB here send last
-	RGB_SPI_LUT[i][1]=tmp>>8;
-	RGB_SPI_LUT[i][0]=tmp>>16; //MSB here send first
+	RGB_SPI_LUT[i*3+2]=tmp; //LSB here send last
+	RGB_SPI_LUT[i*3+1]=tmp>>8;
+	RGB_SPI_LUT[i*3+0]=tmp>>16; //MSB here send first
 }
+
+//LED ARRAY
+#define NUMLED 200
+#define LENLEDDATA NUMLED*3
+static uint8_t LEDData[LENLEDDATA]={0};
+for (int i=0;i<NUMLED;i++)
+{
+	LEDData[i*3]=(uint8_t) i;
+	LEDData[i*3+1]=(uint8_t)i*2;
+	LEDData[i*3+2]=(uint8_t) i*3;
+}
+static uint8_t outputdata[17+LENLEDDATA*3+1]={0};
+outputdata[0]=0xFF;
+#define LENOUTPTDATA 17+LENLEDDATA*3+1
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-	uint8_t IDX=0;
   for(;;)
   {
 		osDelay(150);
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		//HAL_StatusTypeDef HAL_SPI_Transmit_DMA(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size)
-		HAL_SPI_Transmit_DMA(&hspi1,&RGB_SPI_LUT[IDX],3);
-		IDX++;
+		unsigned char* srcPtr = LEDData;
+		unsigned char* dstPtr = &outputdata[17];//using offet indexing for rest peramble
+		for (int i = 0; i < LENLEDDATA; i++)
+		       {
+		        unsigned char ucVal = *srcPtr;
+		        srcPtr++;
+		        int lutOff = ucVal * 3;
+		        unsigned char* ptrLut = RGB_SPI_LUT + lutOff;
+                dstPtr[0] = ptrLut[0];
+                dstPtr[1] = ptrLut[1];
+                dstPtr[2] = ptrLut[2];
+		        dstPtr += 3;
+
+		       }
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		HAL_SPI_Transmit_DMA(&hspi1,&outputdata,LENOUTPTDATA);
+
   }
   /* USER CODE END StartDefaultTask */
 }
