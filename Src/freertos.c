@@ -134,26 +134,33 @@ for(uint32_t i=0;i<256;i++)
 }
 
 //LED ARRAY
-#define NUMLED 200
+#define NUMLED 150
 #define LENLEDDATA NUMLED*3
 static uint8_t LEDData[LENLEDDATA]={0};
-for (int i=0;i<NUMLED;i++)
-{
-	LEDData[i*3]=(uint8_t) i;
-	LEDData[i*3+1]=(uint8_t)i*2;
-	LEDData[i*3+2]=(uint8_t) i*3;
-}
-static uint8_t outputdata[17+LENLEDDATA*3+1]={0};
+static uint8_t outputdata[24+LENLEDDATA*3+2]={0};
+#define LENOUTPTDATA 24+LENLEDDATA*3+2
 outputdata[0]=0xFF;
-#define LENOUTPTDATA 17+LENLEDDATA*3+1
-  /* USER CODE BEGIN StartDefaultTask */
+outputdata[LENOUTPTDATA-1]=0xFF; /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for(;;)
   {
-		osDelay(150);
+		osDelay(50);
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		unsigned char* srcPtr = LEDData;
-		unsigned char* dstPtr = &outputdata[17];//using offet indexing for rest peramble
+		unsigned char* dstPtr = &outputdata[23];//using offet indexing for rest peramble
+		static int loopcount=0;
+		for (int i=0;i<NUMLED;i++)
+		{
+
+			LEDData[i*3]=0;
+			LEDData[i*3+1]=0;
+			LEDData[i*3+2]=0;
+		}
+		LEDData[3]=loopcount%256;
+		LEDData[7]=loopcount%256;
+		LEDData[11]=loopcount%256;
+		loopcount++;
+
 		for (int i = 0; i < LENLEDDATA; i++)
 		       {
 		        unsigned char ucVal = *srcPtr;
